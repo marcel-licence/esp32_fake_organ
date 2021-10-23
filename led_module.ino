@@ -42,6 +42,9 @@
 #endif
 
 
+#ifdef LED_STRIP_PIN
+
+
 #include <Adafruit_NeoPixel.h>
 
 /*
@@ -100,14 +103,14 @@ void LedMatrix_Init(void)
     strip.show();
 }
 
-
 void LedMatrix_Display(void)
 {
     /* nothing todo at the moment */
 }
 
-
 void LedMatrix_SetBrighness(uint8_t unused, float value)
 {
     brightness = (value * 255.0f);
 }
+
+#endif /* LED_STRIP_PIN */

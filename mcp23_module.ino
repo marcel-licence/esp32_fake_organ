@@ -31,7 +31,7 @@
 /**
  * @file mcp23_module.ino
  * @author Marcel Licence
- * @date 04.10.2021
+ * @date 08.07.2021
  *
  * @brief This module is used to control the MCP23017 and MCP23S17
  *
@@ -43,6 +43,9 @@
 #ifdef __CDT_PARSER__
 #include <cdt.h>
 #endif
+
+
+#ifdef MCP23_MODULE_ENABLED
 
 
 #include <Wire.h>
@@ -438,4 +441,6 @@ void MCP23_SelAdc(uint8_t i)
     var |= i;
     MCP23_SpiWriteReg(REG_GPIOB, var);
 }
+
+#endif /* MCP23_MODULE_ENABLED */
 
