@@ -31,7 +31,7 @@
 /**
  * @file es8388.ino
  * @author Marcel Licence
- * @date 13.10.2021
+ * @date 22.08.2021
  *
  * @brief This module is used to initialize the ES8388
  *
@@ -174,16 +174,6 @@ void es8388_read_all()
         Serial.printf("Reg 0x%02x = 0x%02x\n", i, reg);
     }
 }
-
-#define ES8388_PIN_SDA  18
-#define ES8388_PIN_SCL  23
-
-#define ES8388_PIN_MCLK 0
-#define ES8388_PIN_SCLK 5
-#define ES8388_PIN_LRCK 25
-#define ES8388_PIN_DIN  26
-#define ES8388_PIN_DOUT 35
-
 
 void ES8388_SetADCVOL(uint8_t unused, float vol)
 {

@@ -114,3 +114,4 @@ void LedMatrix_SetBrighness(uint8_t unused, float value)
 }
 
 #endif /* LED_STRIP_PIN */
+

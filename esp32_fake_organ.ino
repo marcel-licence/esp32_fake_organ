@@ -157,7 +157,9 @@ void Core0TaskInit()
 inline
 void Core0TaskSetup()
 {
+#ifdef SPI_SCK
     SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SPI_CS);
+#endif
     ScanI2C();
 
 #ifdef BOARD_ML_V1

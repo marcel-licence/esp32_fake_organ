@@ -1,6 +1,4 @@
 /*
- * The GNU GENERAL PUBLIC LICENSE (GNU GPLv3)
- *
  * Copyright (c) 2021 Marcel Licence
  *
  * This program is free software: you can redistribute it and/or modify
@@ -33,7 +31,7 @@
 /**
  * @file blink.ino
  * @author Marcel Licence
- * @date 25.10.2021
+ * @date 12.05.2021
  *
  * @brief this file includes a simple blink task implementation
  */
