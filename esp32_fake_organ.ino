@@ -55,9 +55,6 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Arduino.h>
-#include <FS.h>
-#include <LITTLEFS.h>
-#include <SD_MMC.h>
 #include <WiFi.h>
 
 
@@ -280,6 +277,10 @@ void loop()
         loop_cnt_1hz = 0;
     }
 
+#ifdef ARP_MODULE_ENABLED
+    Arp_Process(SAMPLE_BUFFER_SIZE);
+#endif
+
     if (i2s_write_stereo_samples_buff(fl_sample, fr_sample, SAMPLE_BUFFER_SIZE))
     {
         /* nothing for here */
@@ -330,7 +331,7 @@ void loop()
 void  ScanI2C(void)
 {
 
-    Wire.begin(21, 22);
+    Wire.begin(I2C_SDA, I2C_SCL);
 
     byte error, address;
     int nDevices;

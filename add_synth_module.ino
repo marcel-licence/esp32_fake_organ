@@ -76,30 +76,9 @@
 #define MAX_POLY_VOICE  7 /* max single voices, can use multiple osc */
 #define MAX_POLY_OSC    (MAX_POLY_VOICE*9) /* osc polyphony, always active reduces single voices max poly */
 
-struct channel_settings_s
-{
-    float drawbar[9];
-    float perc[9];
-    int dbOffset[9];
-    float percSig;
-    float percRel;
-    uint8_t sel_bar;
-    uint8_t percNote;
 
-    float *selectedWaveForm;
-};
 
-struct channel_settings_s chCfg =
-{
-    {1, 1, 1, 1, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1},
-    {0, 12 + 7, 12, 12 + 7 + 5, 12 + 7 + 5 + 7, 12 + 7 + 5 + 7 + 5, 12 + 7 + 5 + 7 + 5 + 4, 12 + 7 + 5 + 7 + 5 + 4 + 3, 12 + 7 + 5 + 7 + 5 + 4 + 3 + 5},
-    0,
-    0.999995f,
-    0xFF,
-    0xFF,
-    NULL,
-};
+
 
 static float clk_l;
 
@@ -111,7 +90,7 @@ static float clk_l;
 #define WAVEFORM_CNT    (1<<WAVEFORM_BIT)
 #define WAVEFORM_Q4     (1<<(WAVEFORM_BIT-2))
 #define WAVEFORM_MSK    ((1<<WAVEFORM_BIT)-1)
-#define WAVEFORM_I(i)   ((i) >> (32 - WAVEFORM_BIT)) & WAVEFORM_MSK
+#define WAVEFORM_I(i)   (((i) >> (32 - WAVEFORM_BIT)) & WAVEFORM_MSK)
 
 
 #define MIDI_NOTE_CNT 128
@@ -153,9 +132,6 @@ struct adsrT
     float r;
 };
 
-struct adsrT adsr_vol = {0.25f, 0.25f, 1.0f, 0.01f};
-struct adsrT adsr_fil = {1.0f, 0.25f, 1.0f, 0.01f};
-
 typedef enum
 {
     attack, decay, sustain, release
@@ -185,6 +161,29 @@ float modulationPitch = 1.0f;
 float pitchBendValue = 0.0f;
 float pitchMultiplier = 1.0f;
 
+struct channelSetting_s
+{
+    float drawbar[9];
+    float perc[9];
+    int dbOffset[9];
+    float percSig;
+    float percRel;
+    uint8_t sel_bar;
+    uint8_t percNote;
+    uint32_t voc_act;
+
+    float *selectedWaveForm;
+
+    float soundFiltReso;
+    float soundNoiseLevel;
+
+    struct adsrT adsr_vol;
+    struct adsrT adsr_fil;
+};
+
+static struct channelSetting_s chCfg[16];
+static struct channelSetting_s *curChCfg = &chCfg[1];
+
 struct oscillatorT
 {
     float **waveForm;
@@ -210,6 +209,8 @@ struct notePlayerT
     float velocity;
     bool active;
     adsr_phaseT phase;
+
+    uint8_t midiCh;
     uint8_t midiNote;
 
     float control_sign;
@@ -221,11 +222,13 @@ struct notePlayerT
     float f_control_sign;
     float f_control_sign_slow;
     adsr_phaseT f_phase;
+
+    struct channelSetting_s *cfg;
 };
 
 struct notePlayerT voicePlayer[MAX_POLY_VOICE];
 
-uint32_t voc_act = 0;
+
 
 static float const_null = 0.0f;
 
@@ -261,7 +264,6 @@ void Synth_Init()
         crappy_noise[i] = (random(1024) / 512.0f) - 1.0f;
         silence[i] = 0;
     }
-
 
     float offset = 0;
     for (int i = 0; i < WAVEFORM_CNT; i++)
@@ -301,15 +303,13 @@ void Synth_Init()
     waveFormLookUp[5] = crappy_noise;
     waveFormLookUp[6] = silence;
 
-    chCfg.selectedWaveForm =  pulse;
-
     /*
      * initialize all oscillators
      */
     for (int i = 0; i < MAX_POLY_OSC; i++)
     {
         oscillatorT *osc = &oscPlayer[i];
-        osc->waveForm = &silence;
+        osc->waveForm = &chCfg[0].selectedWaveForm;
         osc->dest = voiceSink;
         osc->vol = &const_null;
         osc->prc = &const_null;
@@ -327,6 +327,7 @@ void Synth_Init()
         voice->lastSample[1] = 0.0f;
         voice->filterL.filterCoeff = &voice->filterC;
         voice->filterR.filterCoeff = &voice->filterC;
+        voice->cfg = &chCfg[0];
     }
 
     /*
@@ -344,6 +345,17 @@ void Synth_Init()
      */
     mainFilterL.filterCoeff = &filterGlobalC;
     mainFilterR.filterCoeff = &filterGlobalC;
+
+    for (int i = 0; i < 16; i++)
+    {
+        Synth_ChannelSettingInit(&chCfg[i]);
+    }
+
+    // chCfg[0].selectedWaveForm = pulse;
+    // chCfg[1].selectedWaveForm = pulse;
+
+    Serial.printf("ADDDR: %x\n", (uint32_t)(*oscPlayer[0].waveForm));
+    Serial.printf("ADDDR: %x\n", (uint32_t)(chCfg[0].selectedWaveForm));
 }
 
 struct filterCoeffT mainFilt;
@@ -361,8 +373,31 @@ struct filterCoeffT mainFilt;
 
 static float filtCutoff = 1.0f;
 static float filtReso = 0.5f;
-static float soundFiltReso = 0.5f;
-static float soundNoiseLevel = 0.0f;
+
+static void Synth_ChannelSettingInit(struct channelSetting_s *setting)
+{
+    struct channelSetting_s chCfg =
+    {
+        /* drawbar */ {1, 1, 1, 1, 0, 0, 0, 0, 0},
+        /* perc */     {1, 1, 1, 1, 1, 1, 1, 1, 1},
+        /* dbOffset */     {0, 12 + 7, 12, 12 + 7 + 5, 12 + 7 + 5 + 7, 12 + 7 + 5 + 7 + 5, 12 + 7 + 5 + 7 + 5 + 4, 12 + 7 + 5 + 7 + 5 + 4 + 3, 12 + 7 + 5 + 7 + 5 + 4 + 3 + 5},
+        /* percSig */     0,
+        /* percRel */     0.999995f,
+        /* sel_bar */     0xFF,
+        /* percNote */     0xFF,
+        /* voc_act */     0,
+        /* selectedWaveForm */     pulse,
+
+        /* soundFiltReso */     0.5f,
+        /* soundNoiseLevel */     0.0f,
+
+        /* adsr_vol */ {1.0f, 0.25f, 1.0f, 0.01f},
+        /* adsr_fil */ {1.0f, 0.25f, 1.0f, 0.01f},
+    };
+
+    memcpy(setting, &chCfg, sizeof(chCfg));
+    // setting->selectedWaveForm = pulse;
+}
 
 /*
  * calculate coefficients of the 2nd order IIR filter
@@ -482,7 +517,7 @@ void Voice_Off(uint32_t i)
     if (voice->active)
     {
         voice->active = false;
-        voc_act -= 1;
+        voice->cfg->voc_act -= 1;
     }
 }
 
@@ -506,7 +541,10 @@ static uint32_t count = 0;
 //[[gnu::noinline, gnu::optimize ("fast-math")]]
 inline void Synth_Process(float *left, float *right)
 {
-    chCfg.percSig *= chCfg.percRel;
+    for (int i = 0; i < 16; i++)
+    {
+        chCfg[i].percSig *= chCfg[i].percRel;
+    }
     Synth_ProcessSelectCnt();
 
     /*
@@ -611,9 +649,9 @@ inline void Synth_NoteOn(uint8_t ch, uint8_t note, float vel)
     struct notePlayerT *voice = getFreeVoice();
     struct oscillatorT *osc = getFreeOsc();
 
-    if (voc_act == 0)
+    if (chCfg[ch].voc_act == 0)
     {
-        chCfg.percSig = 4.0f;
+        chCfg[ch].percSig = 4.0f;
     }
 
     /*
@@ -625,6 +663,8 @@ inline void Synth_NoteOn(uint8_t ch, uint8_t note, float vel)
         return ;
     }
 
+    voice->cfg = &chCfg[ch];
+    voice->midiCh = ch;
     voice->midiNote = note;
 #ifdef MIDI_USE_CONST_VELOCITY
     voice->velocity = 1.0f;
@@ -636,46 +676,51 @@ inline void Synth_NoteOn(uint8_t ch, uint8_t note, float vel)
     voice->control_sign = 0.0f;
 
 
-    if (adsr_fil.a < adsr_fil.s)
+    if (voice->cfg->adsr_fil.a < voice->cfg->adsr_fil.s)
     {
-        adsr_fil.a = adsr_fil.s;
+        voice->cfg->adsr_fil.a = voice->cfg->adsr_fil.s;
     }
     voice->f_phase = decay;
-    voice->f_control_sign = adsr_fil.a;
-    voice->f_control_sign_slow = adsr_fil.a;
+    voice->f_control_sign = voice->cfg->adsr_fil.a;
+    voice->f_control_sign_slow = voice->cfg->adsr_fil.a;
+    voice->active = true;
     voice->phase = attack;
 
-    voice->active = true;
-    voc_act += 1;
+    ADSR_Process(&voice->cfg->adsr_vol, &voice->control_sign, &voice->phase);
+    ADSR_Process(&voice->cfg->adsr_fil, &voice->f_control_sign, &voice->f_phase);
+
+    Filter_Calculate(voice->f_control_sign_slow, voice->cfg->soundFiltReso, &voice->filterC);
+
+    voice->cfg->voc_act += 1;
 
     for (int i = 0; i < 9; i++)
     {
         osc = getFreeOsc();
         if (osc == NULL)
         {
-            Serial.printf("voc: %d, osc: %d\n", voc_act, osc_act);
+            Serial.printf("voc: %d, osc: %d\n", voice->cfg->voc_act, osc_act);
             break ;
         }
 
-        int oNote = note + chCfg.dbOffset[i] - 12;
+        int oNote = note + voice->cfg->dbOffset[i] - 12;
         if ((oNote > 0) && (oNote < 128))
         {
             osc->addVal = midi_note_to_add[oNote];
             //osc->samplePos = (uint32_t)random(1 << 31); /* otherwise it sounds ... bad!? */
             osc->samplePos = 0;
-            osc->waveForm = &chCfg.selectedWaveForm;
+            osc->waveForm = &chCfg[ch].selectedWaveForm;
             osc->dest = voice->lastSample; /* required to attach to voice */
-            osc->vol = &chCfg.drawbar[i];
-            if (i == chCfg.percNote)
+            osc->vol = &voice->cfg->drawbar[i];
+            if (i == voice->cfg->percNote)
             {
-                osc->ctrlSrc = &chCfg.percSig;
-                osc->prc = &chCfg.percRel;
+                osc->ctrlSrc = &voice->cfg->percSig;
+                osc->prc = &voice->cfg->percRel;
             }
             else
             {
                 osc->ctrl = 1.0f;
                 osc->ctrlSrc = &osc->ctrl;
-                osc->prc = &chCfg.perc[i];
+                osc->prc = &voice->cfg->perc[i];
             }
             osc_act += 1;
         }
@@ -699,7 +744,7 @@ inline void Synth_NoteOff(uint8_t ch, uint8_t note)
 {
     for (int i = 0; i < MAX_POLY_VOICE ; i++)
     {
-        if ((voicePlayer[i].active) && (voicePlayer[i].midiNote == note))
+        if ((voicePlayer[i].active) && (voicePlayer[i].midiNote == note) && (voicePlayer[i].midiCh == ch))
         {
             Voice_Off(i);
         }
@@ -729,32 +774,44 @@ void Synth_PitchBend(uint8_t ch, float bend)
     Serial.printf("pitchBendValue: %0.3f\n", pitchBendValue);
 }
 
+void Synth_SetCurCh(uint8_t ch, float value)
+{
+    if (value > 0)
+    {
+        if (ch < 16)
+        {
+            curChCfg = &chCfg[ch];
+            Status_ValueChangedInt("Current ch", ch);
+        }
+    }
+}
+
 void Synth_SetFader(uint8_t slider, float value)
 {
     if (slider < 9)
     {
-        chCfg.drawbar[slider] = value;
+        curChCfg->drawbar[slider] = value;
         Status_ValueChangedFloatArr("drawbar", value, slider);
     }
 }
 
 void Synth_SetPercRel(uint8_t unused, float value)
 {
-    if (chCfg.sel_bar < 9)
+    if (curChCfg->sel_bar < 9)
     {
         if (value == 1.0f)
         {
-            chCfg.perc[chCfg.sel_bar] = 1.0f;
+            curChCfg->perc[curChCfg->sel_bar] = 1.0f;
         }
         else
         {
-            chCfg.perc[chCfg.sel_bar] = 1.0f - (0.00001 * pow(100, 1.0f - value));// pow(2, value * 12);
+            curChCfg->perc[curChCfg->sel_bar] = 1.0f - (0.00001 * pow(100, 1.0f - value));// pow(2, value * 12);
         }
-        Status_ValueChangedFloatArr("PercRel", value, chCfg.sel_bar);
+        Status_ValueChangedFloatArr("PercRel", value, curChCfg->sel_bar);
     }
     else
     {
-        chCfg.percRel = 1.0f - (0.00001 * pow(100, 1.0f - value));// pow(2, value * 12);
+        curChCfg->percRel = 1.0f - (0.00001 * pow(100, 1.0f - value));// pow(2, value * 12);
         Status_ValueChangedFloat("PercRel", value);
     }
 }
@@ -766,15 +823,15 @@ static uint32_t sel_cnt = 0;
 void Synth_ProcessSelectCnt()
 {
 #if 0
-    if (chCfg.sel_bar < 9)
+    if (curChCfg->sel_bar < 9)
     {
         sel_cnt++;
         if (sel_cnt > (SAMPLE_RATE * 3))
         {
-            if (chCfg.percNote != chCfg.sel_bar)
+            if (curChCfg->percNote != curChCfg->sel_bar)
             {
-                chCfg.percNote = chCfg.sel_bar;
-                Serial.printf("percNote =  %d\n", chCfg.percNote);
+                curChCfg->percNote = curChCfg->sel_bar;
+                Serial.printf("percNote =  %d\n", curChCfg->percNote);
             }
         }
     }
@@ -789,15 +846,15 @@ void SynthSelect(uint8_t bar, float value)
 {
     if (value > 0)
     {
-        if (bar == chCfg.percNote)
+        if (bar == curChCfg->percNote)
         {
-            chCfg.sel_bar = 0xFF;
+            curChCfg->sel_bar = 0xFF;
         }
         else
         {
-            chCfg.sel_bar = bar;
+            curChCfg->sel_bar = bar;
         }
-        Status_ValueChangedInt("PercDbSel", chCfg.sel_bar);
+        Status_ValueChangedInt("PercDbSel", curChCfg->sel_bar);
     }
 }
 
@@ -805,9 +862,9 @@ void SynthSelectPerc(uint8_t unusced, float value)
 {
     if (value > 0)
     {
-        chCfg.percNote = chCfg.sel_bar;
-        chCfg.sel_bar = 0xFF; /* to keep assigned release control to perc note */
-        Status_ValueChangedInt("PercNote", chCfg.sel_bar);
+        curChCfg->percNote = curChCfg->sel_bar;
+        curChCfg->sel_bar = 0xFF; /* to keep assigned release control to perc note */
+        Status_ValueChangedInt("PercNote", curChCfg->sel_bar);
     }
 }
 
@@ -816,50 +873,50 @@ void Synth_SetParam(uint8_t slider, float value)
     switch (slider)
     {
     case SYNTH_PARAM_VEL_ENV_ATTACK:
-        adsr_vol.a = (0.00005 * pow(5000, 1.0f - value));
-        Status_ValueChangedFloat("voice volume attack", adsr_vol.a);
+        curChCfg->adsr_vol.a = (0.00005 * pow(5000, 1.0f - value));
+        Status_ValueChangedFloat("voice volume attack", curChCfg->adsr_vol.a);
         break;
     case SYNTH_PARAM_VEL_ENV_DECAY:
-        adsr_vol.d = (0.00005 * pow(5000, 1.0f - value));
-        Status_ValueChangedFloat("voice volume decay", adsr_vol.d);
+        curChCfg->adsr_vol.d = (0.00005 * pow(5000, 1.0f - value));
+        Status_ValueChangedFloat("voice volume decay", curChCfg->adsr_vol.d);
         break;
     case SYNTH_PARAM_VEL_ENV_SUSTAIN:
-        adsr_vol.s = (0.01 * pow(100, value));
-        Status_ValueChangedFloat("voice volume sustain", adsr_vol.s);
+        curChCfg->adsr_vol.s = (0.01 * pow(100, value));
+        Status_ValueChangedFloat("voice volume sustain", curChCfg->adsr_vol.s);
         break;
     case SYNTH_PARAM_VEL_ENV_RELEASE:
-        adsr_vol.r = (0.0001 * pow(100, 1.0f - value));
-        Status_ValueChangedFloat("voice volume release", adsr_vol.r);
+        curChCfg->adsr_vol.r = (0.0001 * pow(100, 1.0f - value));
+        Status_ValueChangedFloat("voice volume release", curChCfg->adsr_vol.r);
         break;
 
     case SYNTH_PARAM_FIL_ENV_ATTACK:
 #if 0
-        adsr_fil.a = (0.00005 * pow(5000, 1.0f - value));
+        curChCfg->adsr_fil.a = (0.00005 * pow(5000, 1.0f - value));
 #else
-        adsr_fil.a = value;
+        curChCfg->adsr_fil.a = value;
 #endif
-        Status_ValueChangedFloat("voice filter attack", adsr_fil.a);
+        Status_ValueChangedFloat("voice filter attack", curChCfg->adsr_fil.a);
         break;
     case SYNTH_PARAM_FIL_ENV_DECAY:
-        adsr_fil.d = (0.00005 * pow(5000, 1.0f - value));
-        Status_ValueChangedFloat("voice filter decay", adsr_fil.d);
+        curChCfg->adsr_fil.d = (0.00005 * pow(5000, 1.0f - value));
+        Status_ValueChangedFloat("voice filter decay", curChCfg->adsr_fil.d);
         break;
     case SYNTH_PARAM_FIL_ENV_SUSTAIN:
-        adsr_fil.s = value;
-        Status_ValueChangedFloat("voice filter sustain", adsr_fil.s);
+        curChCfg->adsr_fil.s = value;
+        Status_ValueChangedFloat("voice filter sustain", curChCfg->adsr_fil.s);
         break;
     case SYNTH_PARAM_FIL_ENV_RELEASE:
-        adsr_fil.r = (0.0001 * pow(100, 1.0f - value));
-        Status_ValueChangedFloat("voice filter release", adsr_fil.r);
+        curChCfg->adsr_fil.r = (0.0001 * pow(100, 1.0f - value));
+        Status_ValueChangedFloat("voice filter release", curChCfg->adsr_fil.r);
         break;
 
     case SYNTH_PARAM_WAVEFORM_1:
         {
             uint8_t selWaveForm = (value) * (WAVEFORM_TYPE_COUNT);
-            chCfg.selectedWaveForm = waveFormLookUp[selWaveForm];
+            curChCfg->selectedWaveForm = waveFormLookUp[selWaveForm];
             Status_ValueChangedInt("selWaveForm", selWaveForm);
 #ifdef SPI_DISP_ENABLED
-            Display_DisplayWaveform(chCfg.selectedWaveForm, WAVEFORM_CNT);
+            Display_DisplayWaveform(curChCfg->selectedWaveForm, WAVEFORM_CNT);
 #endif
         }
         break;
@@ -876,13 +933,13 @@ void Synth_SetParam(uint8_t slider, float value)
         break;
 
     case SYNTH_PARAM_VOICE_FILT_RESO:
-        soundFiltReso = 0.5f + 10 * value * value * value; /* min q is 0.5 here */
-        Status_ValueChangedFloat("voice filter reso", soundFiltReso);
+        curChCfg->soundFiltReso = 0.5f + 10 * value * value * value; /* min q is 0.5 here */
+        Status_ValueChangedFloat("voice filter reso", curChCfg->soundFiltReso);
         break;
 
     case SYNTH_PARAM_VOICE_NOISE_LEVEL:
-        soundNoiseLevel = value;
-        Status_ValueChangedFloat("voice noise level", soundNoiseLevel);
+        curChCfg->soundNoiseLevel = value;
+        Status_ValueChangedFloat("voice noise level", curChCfg->soundNoiseLevel);
         break;
 
     default:
