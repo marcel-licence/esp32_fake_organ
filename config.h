@@ -47,9 +47,9 @@
 #define CONFIG_H_
 
 
-#define BOARD_ML_V1 /* activate this when using the ML PCB V1 */
+//#define BOARD_ML_V1 /* activate this when using the ML PCB V1 */
 //#define BOARD_ESP32_AUDIO_KIT_AC101 /* activate this when using the ESP32 Audio Kit v2.2 with the AC101 codec */
-//#define BOARD_ESP32_AUDIO_KIT_ES8388 /* activate this when using the ESP32 Audio Kit v2.2 with the ES8388 codec */
+#define BOARD_ESP32_AUDIO_KIT_ES8388 /* activate this when using the ESP32 Audio Kit v2.2 with the ES8388 codec */
 //#define BOARD_ESP32_DOIT /* activate this when using the DOIT ESP32 DEVKIT V1 board */
 
 /* can be used to pass line in through audio processing to output */
@@ -78,40 +78,28 @@
 #define ADC_TO_MIDI_LOOKUP_SIZE 8 /* should match ADC_INPUTS */
 
 //#define ARP_MODULE_ENABLED /* allow using arp module */
+#define MIDI_SYNC_MASTER /* turn this off to use external midi clock signal */
 //#define MIDI_CTRL_ENABLED /* used for virtual split point */
 
 /*
  * include the board configuration
  * there you will find the most hardware depending pin settings
  */
+#include <ml_boards.h>
+
 #ifdef BOARD_ML_V1
-#include "./boards/board_ml_v1.h"
-
-#define MCP23_MODULE_ENABLED
-#define LED_MATRIX_ENABLED
-#define OLED_OSC_DISP_ENABLED
-//#define SPI_DISP_ENABLED
-#define DISPLAY_160x80
-//#define DISPLAY_FROM_STATUS_ENABLED
-#define ADC_TO_MIDI_ENABLED
-#define ADC_MCP_CTRL_ENABLED
-//#define ADC_TO_MIDI_LOOKUP_SIZE 8
-#define ADC_INPUTS 8
-
 #elif (defined BOARD_ESP32_AUDIO_KIT_AC101)
-#include "./boards/board_audio_kit_ac101.h"
 #elif (defined BOARD_ESP32_AUDIO_KIT_ES8388)
-#include "./boards/board_audio_kit_es8388.h"
 #elif (defined BOARD_ESP32_DOIT)
-#include "./boards/board_esp32_doit.h"
 #else
 /* there is room left for other configurations */
 
 /*
  * DIN MIDI Pinout
  */
-#define MIDI_RX_PIN 16 /* U2RRXD */
-#define MIDI_TX_PIN 17
+#define MIDI_PORT2_ACTIVE
+#define MIDI_RX2_PIN 16 /* U2RRXD */
+#define MIDI_TX2_PIN 17
 
 #endif
 

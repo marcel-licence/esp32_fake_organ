@@ -152,7 +152,6 @@ struct midiControllerMapping edirolMapping[] =
     { 0x1, 0x12, "S9", NULL, Synth_SetFader, 8},
 
     /* rotary */
-
     { 0x0, 0x10, "R1", NULL, Synth_SetParam, SYNTH_PARAM_WAVEFORM_1},
     { 0x1, 0x10, "R2", NULL, Synth_SetPercRel, 0},
     { 0x2, 0x10, "R3", NULL, Delay_SetLength, 2},
@@ -166,7 +165,7 @@ struct midiControllerMapping edirolMapping[] =
     { 0x0, 0x12, "R9", NULL, Reverb_SetLevel, 0},
 
     /* Central slider */
-    { 0x0, 0x13, "H1", NULL, NULL, 0},
+    { 0x0, 0x13, "H1", NULL, Synth_SetMidiMasterTempo, 0},
 };
 
 struct midiMapping_s midiMapping =
@@ -181,6 +180,8 @@ struct midiMapping_s midiMapping =
 #endif
     Synth_PitchBend,
     Synth_ModulationWheel,
+    Synth_RealTimeMsg,
+    Synth_SongPosition,
     edirolMapping,
     sizeof(edirolMapping) / sizeof(edirolMapping[0]),
 };

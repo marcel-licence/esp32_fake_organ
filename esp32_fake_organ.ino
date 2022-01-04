@@ -58,6 +58,13 @@
 #include <WiFi.h>
 
 
+#include <ml_arp.h>
+#include <ml_reverb.h>
+#include <ml_midi_ctrl.h>
+#if 0 /* this comes in future */
+#include <ml_scope.h>
+#endif
+
 void App_UsbMidiShortMsgReceived(uint8_t *msg)
 {
     Midi_SendShortMessage(msg);
@@ -93,41 +100,36 @@ void setup()
     Blink_Setup();
 #endif
 
-#ifdef ESP32_AUDIO_KIT
-#ifdef ES8388_ENABLED
-    ES8388_Setup();
-#else
-    ac101_setup();
-#endif
-#endif
-
-    setup_i2s();
-    Serial.printf("Initialize Midi Module\n");
+    Audio_Setup();
 
     /*
      * setup midi module / rx port
      */
     Midi_Setup();
 
-    Serial.printf("Turn off Wifi/Bluetooth\n");
-#if 0
-    setup_wifi();
-#else
-    WiFi.mode(WIFI_OFF);
-#endif
+    /*
+     * Initialize reverb
+     * The buffer shall be static to ensure that
+     * the memory will be exclusive available for the reverb module
+     */
+    static float revBuffer[REV_BUFF_SIZE];
+    Reverb_Setup(revBuffer);
 
-#ifndef ESP8266
-    btStop();
-    // esp_wifi_deinit();
-#endif
+    Arp_Init(24 * 4); /* slowest tempo one step per bar */
 
-
-    Reverb_Setup();
-
+#ifdef ESP32
     Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
     Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
     Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
     Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
+
+    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
+    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+
+    /* PSRAM will be fully used by the looper */
+    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
+    Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
+#endif
 
     Serial.printf("Firmware started successfully\n");
 
@@ -157,7 +159,10 @@ void Core0TaskSetup()
 #ifdef SPI_SCK
     SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SPI_CS);
 #endif
+
+#if 0 /* only for testing purposes */
     ScanI2C();
+#endif
 
 #ifdef BOARD_ML_V1
     MCP23017_TestCS();
@@ -243,6 +248,70 @@ void Core0Task(void *parameter)
     }
 }
 
+static uint32_t sync = 0;
+
+void Midi_SyncRecvd()
+{
+    sync += 1;
+}
+
+void Synth_RealTimeMsg(uint8_t msg)
+{
+#ifndef MIDI_SYNC_MASTER
+    switch (msg)
+    {
+    case 0xfa: /* start */
+        Arp_Reset();
+        break;
+    case 0xf8: /* Timing Clock */
+        Midi_SyncRecvd();
+        break;
+    }
+#endif
+}
+
+#ifdef MIDI_SYNC_MASTER
+
+#define MIDI_PPQ    24
+#define SAMPLES_PER_MIN  (SAMPLE_RATE*60)
+
+static float midi_tempo = 120.0f;
+
+void MidiSyncMasterLoop(void)
+{
+    static float midiDiv = 0;
+    midiDiv += SAMPLE_BUFFER_SIZE;
+    if (midiDiv >= (SAMPLES_PER_MIN) / (MIDI_PPQ * midi_tempo))
+    {
+        midiDiv -= (SAMPLES_PER_MIN) / (MIDI_PPQ * midi_tempo);
+        Midi_SyncRecvd();
+    }
+}
+
+void Synth_SetMidiMasterTempo(uint8_t unused, float val)
+{
+    midi_tempo = 60.0f + val * (240.0f - 60.0f);
+}
+
+#endif
+
+void Synth_SongPosition(uint16_t pos)
+{
+    Serial.printf("Songpos: %d\n", pos);
+    if (pos == 0)
+    {
+        Arp_Reset();
+    }
+}
+
+void Synth_SongPosReset(uint8_t unused, float var)
+{
+    if (var > 0)
+    {
+        Synth_SongPosition(0);
+    }
+}
+
 /*
  * use this if something should happen every second
  * - you can drive a blinking LED for example
@@ -277,14 +346,23 @@ void loop()
         loop_cnt_1hz = 0;
     }
 
-#ifdef ARP_MODULE_ENABLED
-    Arp_Process(SAMPLE_BUFFER_SIZE);
+    /*
+     * Midi does not required to be checked after every processed sample
+     * - we divide our operation by 8
+     */
+    Midi_Process();
+#ifdef MIDI_VIA_USB_ENABLED
+    UsbMidi_ProcessSync();
 #endif
 
-    if (i2s_write_stereo_samples_buff(fl_sample, fr_sample, SAMPLE_BUFFER_SIZE))
-    {
-        /* nothing for here */
-    }
+#ifdef MIDI_SYNC_MASTER
+    MidiSyncMasterLoop();
+#endif
+
+#ifdef ARP_MODULE_ENABLED
+    Arp_Process(sync);
+    sync = 0;
+#endif
 
 #ifdef OLED_OSC_DISP_ENABLED
     /*
@@ -310,33 +388,72 @@ void loop()
 
     //ReverbSc_Process(fl_sample, fr_sample, &fl_sample, &fr_sample);
 
-    /*
-     * Midi does not required to be checked after every processed sample
-     * - we divide our operation by 8
-     */
-    //if (loop_count_u8 % 8 == 0)
-    {
-        Midi_Process();
-#ifdef MIDI_VIA_USB_ENABLED
-        UsbMidi_ProcessSync();
-#endif
-    }
+
+
+    Audio_Output(fl_sample, fr_sample);
 }
 
+/*
+ * Callbacks
+ */
+void MidiCtrl_Cb_NoteOn(uint8_t ch, uint8_t note, float vel)
+{
+    Arp_NoteOn(ch, note, vel);
+}
+
+void MidiCtrl_Cb_NoteOff(uint8_t ch, uint8_t note)
+{
+    Arp_NoteOff(ch, note);
+}
+
+void MidiCtrl_Status_ValueChangedIntArr(const char *descr, int value, int index)
+{
+    Status_ValueChangedIntArr(descr, value, index);
+}
+
+void Arp_Cb_NoteOn(uint8_t ch, uint8_t note, float vel)
+{
+    Synth_NoteOn(ch, note, vel);
+}
+
+void Arp_Cb_NoteOff(uint8_t ch, uint8_t note)
+{
+    Synth_NoteOff(ch, note);
+}
+
+void Arp_Status_ValueChangedInt(const char *msg, int value)
+{
+    Status_ValueChangedInt(msg, value);
+}
+
+void Arp_Status_LogMessage(const char *msg)
+{
+    Status_LogMessage(msg);
+}
+
+void Arp_Status_ValueChangedFloat(const char *msg, float value)
+{
+    Status_ValueChangedFloat(msg, value);
+}
+
+void Arp_Cb_Step(uint8_t step)
+{
+    /* ignore */
+}
 
 /*
  * Test functions
  */
-
 void  ScanI2C(void)
 {
-
-    Wire.begin(I2C_SDA, I2C_SCL);
+    uint8_t i2c_sda_pin = I2C_SDA;
+    uint8_t i2c_scl_pin = I2C_SCL;
+    Wire.begin(i2c_sda_pin, i2c_scl_pin);
 
     byte error, address;
     int nDevices;
 
-    Serial.println("Scanning...");
+    Serial.printf("Scanning...\nSDA: %d\nSCL: %d\n", i2c_sda_pin, i2c_scl_pin);
 
     nDevices = 0;
     for (address = 1; address < 127; address++)
