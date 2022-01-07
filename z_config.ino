@@ -155,7 +155,7 @@ struct midiControllerMapping edirolMapping[] =
     { 0x0, 0x10, "R1", NULL, Synth_SetParam, SYNTH_PARAM_WAVEFORM_1},
     { 0x1, 0x10, "R2", NULL, Synth_SetPercRel, 0},
     { 0x2, 0x10, "R3", NULL, Delay_SetLength, 2},
-    { 0x3, 0x10, "R4", NULL, Delay_SetLevel, 3},
+    { 0x3, 0x10, "R4", NULL, Delay_SetOutputLevel, 3},
 
     { 0x4, 0x10, "R5", NULL, Delay_SetFeedback, 4},
     { 0x5, 0x10, "R6", NULL, Synth_SetParam, SYNTH_PARAM_MAIN_FILT_CUTOFF},

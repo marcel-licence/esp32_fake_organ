@@ -52,24 +52,22 @@
  * add also includes used for other modules
  * otherwise arduino generated declaration may cause errors
  */
+#include <Arduino.h>
+
 #include <SPI.h>
 #include <Wire.h>
-#include <Arduino.h>
 #include <WiFi.h>
 
-
+/* requires the ml_Synth library */
 #include <ml_arp.h>
 #include <ml_reverb.h>
 #include <ml_midi_ctrl.h>
-#if 0 /* this comes in future */
+#include <ml_delay.h>
+#ifdef OLED_OSC_DISP_ENABLED
 #include <ml_scope.h>
 #endif
 
-void App_UsbMidiShortMsgReceived(uint8_t *msg)
-{
-    Midi_SendShortMessage(msg);
-    Midi_HandleShortMsg(msg, 8);
-}
+
 
 void setup()
 {
@@ -88,13 +86,10 @@ void setup()
     Serial.printf("This is free software, and you are welcome to redistribute it\n");
     Serial.printf("under certain conditions;\n");
 
-    Delay_Init();
 
     Serial.printf("Initialize Synth Module\n");
     Synth_Init();
     Serial.printf("Initialize I2S Module\n");
-
-    // setup_reverb();
 
 #ifdef BLINK_LED_PIN
     Blink_Setup();
@@ -102,10 +97,6 @@ void setup()
 
     Audio_Setup();
 
-    /*
-     * setup midi module / rx port
-     */
-    Midi_Setup();
 
     /*
      * Initialize reverb
@@ -115,7 +106,21 @@ void setup()
     static float revBuffer[REV_BUFF_SIZE];
     Reverb_Setup(revBuffer);
 
+    /*
+     * Prepare a buffer which can be used for the delay
+     */
+    static int16_t *delBuffer1 = (int16_t *)malloc(sizeof(int16_t) * MAX_DELAY);
+    static int16_t *delBuffer2 = (int16_t *)malloc(sizeof(int16_t) * MAX_DELAY);
+    Delay_Init2(delBuffer1, delBuffer2, MAX_DELAY);
+
+    /*
+     * setup midi module / rx port
+     */
+    Midi_Setup();
+
+#ifdef ARP_MODULE_ENABLED
     Arp_Init(24 * 4); /* slowest tempo one step per bar */
+#endif
 
 #ifdef ESP32
     Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
@@ -140,6 +145,7 @@ void setup()
     Core0TaskInit();
 }
 
+#ifdef ESP32
 /*
  * Core 0
  */
@@ -156,6 +162,10 @@ void Core0TaskInit()
 inline
 void Core0TaskSetup()
 {
+    /*
+     * init your stuff for core0 here
+     */
+
 #ifdef SPI_SCK
     SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SPI_CS);
 #endif
@@ -169,19 +179,17 @@ void Core0TaskSetup()
 #endif
 
 #ifdef OLED_OSC_DISP_ENABLED
-    display_oled_i2c_setup();
+    ScopeOled_Setup();
 #endif
 
 #ifdef SPI_DISP_ENABLED
     Display_Test();
 #endif
 
-    /*
-     * init your stuff for core0 here
-     */
 #ifdef LED_MATRIX_ENABLED
     LedMatrix_Init();
 #endif
+
 #ifdef ADC_TO_MIDI_ENABLED
     AdcMul_Init();
 #endif
@@ -222,15 +230,16 @@ void Core0TaskLoop()
     Display_Process();
 #endif
 
-#ifdef OLED_OSC_DISP_ENABLED
-    display_oled_process();
-#endif
-
 #ifdef MIDI_VIA_USB_ENABLED
     UsbMidi_Loop();
 #endif
-#ifdef BOARD_ML_V1
+
+#ifdef MCP23_MODULE_ENABLED
     MCP23_Loop();
+#endif
+
+#ifdef OLED_OSC_DISP_ENABLED
+    ScopeOled_Process();
 #endif
 }
 
@@ -247,6 +256,7 @@ void Core0Task(void *parameter)
         yield();
     }
 }
+#endif /* ESP32 */
 
 static uint32_t sync = 0;
 
@@ -340,7 +350,7 @@ void loop()
     loop_count_u8++;
 
     loop_cnt_1hz += SAMPLE_BUFFER_SIZE;
-    if (loop_cnt_1hz >= (SAMPLE_RATE))
+    if (loop_cnt_1hz >= SAMPLE_RATE)
     {
         Loop_1Hz();
         loop_cnt_1hz = 0;
@@ -364,22 +374,19 @@ void loop()
     sync = 0;
 #endif
 
-#ifdef OLED_OSC_DISP_ENABLED
-    /*
-     * for oled display
-     */
-    display_add_samples(fl_sample, SAMPLE_BUFFER_SIZE);
-#endif
-
     for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++)
     {
         Synth_Process(&fl_sample[i], &fr_sample[i]);
-        /*
-         * process delay line
-         */
-        Delay_Process(&fl_sample[i], &fr_sample[i]);
     }
 
+    /*
+     * process delay line
+     */
+    Delay_Process_Buff2(fl_sample, fr_sample, SAMPLE_BUFFER_SIZE);
+
+    /*
+     * add also some reverb
+     */
     Reverb_Process(fl_sample, SAMPLE_BUFFER_SIZE);
     memcpy(fr_sample,  fl_sample, sizeof(fr_sample));
 
@@ -388,9 +395,11 @@ void loop()
 
     //ReverbSc_Process(fl_sample, fr_sample, &fl_sample, &fr_sample);
 
-
-
     Audio_Output(fl_sample, fr_sample);
+
+#ifdef OLED_OSC_DISP_ENABLED
+    ScopeOled_AddSamples(fl_sample, fr_sample, SAMPLE_BUFFER_SIZE);
+#endif
 }
 
 /*
@@ -440,6 +449,17 @@ void Arp_Cb_Step(uint8_t step)
 {
     /* ignore */
 }
+
+/*
+ * MIDI via USB Host Module
+ */
+#ifdef MIDI_VIA_USB_ENABLED
+void App_UsbMidiShortMsgReceived(uint8_t *msg)
+{
+    Midi_SendShortMessage(msg);
+    Midi_HandleShortMsg(msg, 8);
+}
+#endif
 
 /*
  * Test functions
