@@ -258,11 +258,11 @@ void Core0Task(void *parameter)
 }
 #endif /* ESP32 */
 
-static uint32_t sync = 0;
+static uint32_t midiSyncCount = 0;
 
 void Midi_SyncRecvd()
 {
-    sync += 1;
+    midiSyncCount += 1;
 }
 
 void Synth_RealTimeMsg(uint8_t msg)
@@ -370,8 +370,8 @@ void loop()
 #endif
 
 #ifdef ARP_MODULE_ENABLED
-    Arp_Process(sync);
-    sync = 0;
+    Arp_Process(midiSyncCount);
+    midiSyncCount = 0;
 #endif
 
     for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++)
@@ -464,6 +464,7 @@ void App_UsbMidiShortMsgReceived(uint8_t *msg)
 /*
  * Test functions
  */
+#if defined(I2C_SCL) && defined (I2C_SDA)
 void  ScanI2C(void)
 {
     uint8_t i2c_sda_pin = I2C_SDA;
@@ -515,4 +516,5 @@ void  ScanI2C(void)
         Serial.println("done\n");
     }
 }
+#endif
 
