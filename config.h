@@ -81,7 +81,7 @@
 //#define MIDI_VIA_USB_ENABLED
 
 /* use this to display a scope on the oled display */
-#define OLED_OSC_DISP_ENABLED
+//#define OLED_OSC_DISP_ENABLED
 
 /*
  * keep in mind that activation of adc will also change your controls on startup!
