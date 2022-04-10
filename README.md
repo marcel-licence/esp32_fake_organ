@@ -18,6 +18,11 @@ It should be compatible with ESP32 Audio Kit and also easy to use with a stand-a
 Please feel free to share this project. 
 In case of commercial purposes, get in touch with me (facebook, instagram, etc.)
 
+Supported versions of board library
+---
+- ESP32 version 1.0.6 from https://github.com/espressif/arduino-esp32/releases/tag/1.0.6
+- ESP32 version 2.0.2 from https://github.com/espressif/arduino-esp32/releases/tag/2.0.2
+Please be aware that other versions might be not supported.
 
 ## Features/Modules
 ### additive synth module
