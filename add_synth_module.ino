@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Marcel Licence
+ * Copyright (c) 2022 Marcel Licence
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -915,7 +915,7 @@ void Synth_SetParam(uint8_t slider, float value)
             uint8_t selWaveForm = (value) * (WAVEFORM_TYPE_COUNT);
             curChCfg->selectedWaveForm = waveFormLookUp[selWaveForm];
             Status_ValueChangedInt("selWaveForm", selWaveForm);
-#ifdef SPI_DISP_ENABLED
+#ifdef SPI_DISP_ENABLED_NA
             Display_DisplayWaveform(curChCfg->selectedWaveForm, WAVEFORM_CNT);
 #endif
         }

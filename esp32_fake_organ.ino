@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Marcel Licence
+ * Copyright (c) 2022 Marcel Licence
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ void setup()
     Serial.println();
 
     /* little note for the license */
-    Serial.printf("esp32_fake_organ - Copyright (c) 2021  Marcel Licence\n");
+    Serial.printf("esp32_fake_organ - Copyright (c) 2022  Marcel Licence\n");
     Serial.printf("This program comes with ABSOLUTELY NO WARRANTY;\n");
     Serial.printf("This is free software, and you are welcome to redistribute it\n");
     Serial.printf("under certain conditions;\n");
@@ -138,8 +138,15 @@ void setup()
 
     Serial.printf("Firmware started successfully\n");
 
-#if 0 /* activate this line to get a tone on startup to test the DAC */
+#ifdef NOTE_ON_STARTUP /* activate this line to get a tone on startup to test the DAC */
     Synth_NoteOn(0, 64, 1.0f);
+#endif
+
+#ifdef MIDI_STREAM_PLAYER_ENABLED
+    MidiStreamPlayer_Init();
+
+    char midiFile[] = "/song.mid";
+    MidiStreamPlayer_PlayMidiFile_fromLittleFS(midiFile, 1);
 #endif
 
     Core0TaskInit();
@@ -182,7 +189,7 @@ void Core0TaskSetup()
     ScopeOled_Setup();
 #endif
 
-#ifdef SPI_DISP_ENABLED
+#ifdef SPI_DISP_ENABLED_NA
     Display_Test();
 #endif
 
@@ -226,7 +233,7 @@ void Core0TaskLoop()
 
     Status_Process();
 
-#ifdef SPI_DISP_ENABLED
+#ifdef SPI_DISP_ENABLED_NA
     Display_Process();
 #endif
 
@@ -361,6 +368,11 @@ void loop()
      * - we divide our operation by 8
      */
     Midi_Process();
+
+#ifdef MIDI_STREAM_PLAYER_ENABLED
+    MidiStreamPlayer_Tick(SAMPLE_BUFFER_SIZE);
+#endif
+
 #ifdef MIDI_VIA_USB_ENABLED
     UsbMidi_ProcessSync();
 #endif
