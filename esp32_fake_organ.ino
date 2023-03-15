@@ -66,8 +66,19 @@
 #ifdef OLED_OSC_DISP_ENABLED
 #include <ml_scope.h>
 #endif
+#include <ml_status.h>
 
+#include <ml_types.h>
 
+#define ML_SYNTH_INLINE_DECLARATION
+#include <i2s_interface.h>
+#include <i2s_module.h>
+#include <audio_module.h>
+#include <midi_interface.h>
+#include <midi_stream_player.h>
+#include <midi_via_ble.h>
+#include <midi_via_usb.h>
+#undef ML_SYNTH_INLINE_DECLARATION
 
 void setup()
 {
@@ -103,7 +114,8 @@ void setup()
      * The buffer shall be static to ensure that
      * the memory will be exclusive available for the reverb module
      */
-    static float revBuffer[REV_BUFF_SIZE];
+    //static float revBuffer[REV_BUFF_SIZE];
+    static float *revBuffer = (float *)malloc(sizeof(float) * REV_BUFF_SIZE);
     Reverb_Setup(revBuffer);
 
     /*
@@ -181,7 +193,7 @@ void Core0TaskSetup()
     ScanI2C();
 #endif
 
-#ifdef BOARD_ML_V1
+#ifdef MCP23_MODULE_ENABLED
     MCP23017_TestCS();
 #endif
 

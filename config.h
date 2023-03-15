@@ -46,14 +46,18 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+
 #ifdef __CDT_PARSER__
 #include <cdt.h>
 #endif
 
 
-//#define BOARD_ML_V1 /* activate this when using the ML PCB V1 */
+#define SERIAL_BAUDRATE 115200
+
+
+#define BOARD_ML_V1 /* activate this when using the ML PCB V1 */
 //#define BOARD_ESP32_AUDIO_KIT_AC101 /* activate this when using the ESP32 Audio Kit v2.2 with the AC101 codec */
-#define BOARD_ESP32_AUDIO_KIT_ES8388 /* activate this when using the ESP32 Audio Kit v2.2 with the ES8388 codec */
+//#define BOARD_ESP32_AUDIO_KIT_ES8388 /* activate this when using the ESP32 Audio Kit v2.2 with the ES8388 codec */
 //#define BOARD_ESP32_DOIT /* activate this when using the DOIT ESP32 DEVKIT V1 board */
 
 /* can be used to pass line in through audio processing to output */
@@ -66,7 +70,7 @@
 #define MIDI_USE_CONST_VELOCITY
 
 /* this variable defines the max length of the delay and also the memory consumption */
-#define MAX_DELAY   (SAMPLE_RATE/2) /* 1/2s -> @ 44100 samples */
+#define MAX_DELAY   (SAMPLE_RATE/3) /* 1/2s -> @ 44100 samples */
 
 /* you can receive MIDI messages via serial-USB connection */
 /*
