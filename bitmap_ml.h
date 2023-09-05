@@ -48,10 +48,10 @@
 
 struct gimpImg_s
 {
-    unsigned int     width;
-    unsigned int     height;
-    unsigned int     bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-    unsigned char    pixel_data[160 * 80 * 2 + 1];
+    unsigned int width;
+    unsigned int height;
+    unsigned int bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
+    unsigned char pixel_data[160 * 80 * 2 + 1];
 };
 
 static const struct gimpImg_s gimp_image_ml_160_80 PROGMEM =
@@ -1039,7 +1039,6 @@ static const struct gimpImg_s gimp_image_ml_160_80 PROGMEM =
     "\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377\377"
     "\377\377\377\377\377",
 };
-
 
 
 /* GIMP RGBA C-Source image dump (Pepper.c) */
@@ -2280,8 +2279,7 @@ static const struct gimpImg_s gimp_image PROGMEM =
 };
 
 
-
-static const struct gimpImg_s gimp_image2 PROGMEM  =
+static const struct gimpImg_s gimp_image2 PROGMEM =
 {
     160, 80, 2,
     "}\367|\367\\\367\\\367]\377]\377]\367]\377=\367\374\366\374\366\370\336\364"
@@ -3340,10 +3338,10 @@ static const struct gimpImg_s gimp_image2 PROGMEM  =
 
 static const struct
 {
-    unsigned int     width;
-    unsigned int     height;
-    unsigned int     bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-    uint8_t             pixel_data[240 * 240 * 2 + 1];
+    unsigned int width;
+    unsigned int height;
+    unsigned int bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
+    uint8_t pixel_data[240 * 240 * 2 + 1];
 } ml_240x240_depr =
 {
     240, 240, 2,
@@ -7592,10 +7590,10 @@ static const struct
 
 static const struct
 {
-    unsigned int     width;
-    unsigned int     height;
-    unsigned int     bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-    unsigned char    pixel_data[128 * 128 * 2 + 1];
+    unsigned int width;
+    unsigned int height;
+    unsigned int bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
+    unsigned char pixel_data[128 * 128 * 2 + 1];
 } gimp_ml_128_128 =
 {
     128, 128, 2,
@@ -8894,10 +8892,10 @@ static const struct
 
 static const struct
 {
-    unsigned int     width;
-    unsigned int     height;
-    unsigned int     bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
-    unsigned char    pixel_data[240 * 240 * 2 + 1];
+    unsigned int width;
+    unsigned int height;
+    unsigned int bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */
+    unsigned char pixel_data[240 * 240 * 2 + 1];
 } ml_240x240 PROGMEM =
 {
     240, 240, 2,

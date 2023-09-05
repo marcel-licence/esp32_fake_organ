@@ -407,7 +407,7 @@ void loop()
      * add also some reverb
      */
     Reverb_Process(fl_sample, SAMPLE_BUFFER_SIZE);
-    memcpy(fr_sample,  fl_sample, sizeof(fr_sample));
+    memcpy(fr_sample, fl_sample, sizeof(fr_sample));
 
     //pll_prozess(&pll_data_buffer, fr_sample, SAMPLE_BUFFER_SIZE, fl_sample); // TODO very very slow
 
@@ -484,7 +484,7 @@ void App_UsbMidiShortMsgReceived(uint8_t *msg)
  * Test functions
  */
 #if defined(I2C_SCL) && defined (I2C_SDA)
-void  ScanI2C(void)
+void ScanI2C(void)
 {
     uint8_t i2c_sda_pin = I2C_SDA;
     uint8_t i2c_scl_pin = I2C_SCL;

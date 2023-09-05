@@ -77,9 +77,6 @@
 #define MAX_POLY_OSC    (MAX_POLY_VOICE*9) /* osc polyphony, always active reduces single voices max poly */
 
 
-
-
-
 static float clk_l;
 
 /*
@@ -121,7 +118,6 @@ float *waveFormLookUp[WAVEFORM_TYPE_COUNT];
 /*
  * pre selected waveforms
  */
-
 
 
 struct adsrT
@@ -227,7 +223,6 @@ struct notePlayerT
 };
 
 struct notePlayerT voicePlayer[MAX_POLY_VOICE];
-
 
 
 static float const_null = 0.0f;
@@ -379,17 +374,17 @@ static void Synth_ChannelSettingInit(struct channelSetting_s *setting)
     struct channelSetting_s chCfg =
     {
         /* drawbar */ {1, 1, 1, 1, 0, 0, 0, 0, 0},
-        /* perc */     {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        /* dbOffset */     {0, 12 + 7, 12, 12 + 7 + 5, 12 + 7 + 5 + 7, 12 + 7 + 5 + 7 + 5, 12 + 7 + 5 + 7 + 5 + 4, 12 + 7 + 5 + 7 + 5 + 4 + 3, 12 + 7 + 5 + 7 + 5 + 4 + 3 + 5},
-        /* percSig */     0,
-        /* percRel */     0.999995f,
-        /* sel_bar */     0xFF,
-        /* percNote */     0xFF,
-        /* voc_act */     0,
-        /* selectedWaveForm */     pulse,
+        /* perc */ {1, 1, 1, 1, 1, 1, 1, 1, 1},
+        /* dbOffset */ {0, 12 + 7, 12, 12 + 7 + 5, 12 + 7 + 5 + 7, 12 + 7 + 5 + 7 + 5, 12 + 7 + 5 + 7 + 5 + 4, 12 + 7 + 5 + 7 + 5 + 4 + 3, 12 + 7 + 5 + 7 + 5 + 4 + 3 + 5},
+        /* percSig */ 0,
+        /* percRel */ 0.999995f,
+        /* sel_bar */ 0xFF,
+        /* percNote */ 0xFF,
+        /* voc_act */ 0,
+        /* selectedWaveForm */ pulse,
 
-        /* soundFiltReso */     0.5f,
-        /* soundNoiseLevel */     0.0f,
+        /* soundFiltReso */ 0.5f,
+        /* soundNoiseLevel */ 0.0f,
 
         /* adsr_vol */ {1.0f, 0.25f, 1.0f, 0.01f},
         /* adsr_fil */ {1.0f, 0.25f, 1.0f, 0.01f},
@@ -402,13 +397,13 @@ static void Synth_ChannelSettingInit(struct channelSetting_s *setting)
 /*
  * calculate coefficients of the 2nd order IIR filter
  */
-inline void Filter_Calculate(float c, float reso, struct filterCoeffT *const  filterC)
+inline void Filter_Calculate(float c, float reso, struct filterCoeffT *const filterC)
 {
     float *aNorm = filterC->aNorm;
     float *bNorm = filterC->bNorm;
 
     float Q = reso;
-    float  cosOmega, omega, sinOmega, alpha, a[3], b[3];
+    float cosOmega, omega, sinOmega, alpha, a[3], b[3];
 
     /*
      * change curve of cutoff a bit
@@ -927,7 +922,7 @@ void Synth_SetParam(uint8_t slider, float value)
         Filter_Calculate(filtCutoff, filtReso, &filterGlobalC);
         break;
     case SYNTH_PARAM_MAIN_FILT_RESO:
-        filtReso =  0.5f + 10 * value * value * value; /* min q is 0.5 here */
+        filtReso = 0.5f + 10 * value * value * value; /* min q is 0.5 here */
         Status_ValueChangedFloat("main filter reso", filtReso);
         Filter_Calculate(filtCutoff, filtReso, &filterGlobalC);
         break;
