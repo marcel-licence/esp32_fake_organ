@@ -7,8 +7,8 @@ Below you will find a list of build which can be configured and should compile w
 <b>Version:</b> 1.0.6<br />
 <b>Board:</b> ESP32 Dev Module<br />
 <br />
-<b>Program storage space:</b> 723542 bytes<br />
-<b>Dynamic memory:</b> 53244 bytes<br />
+<b>Program storage space:</b> 733026 bytes<br />
+<b>Dynamic memory:</b> 53324 bytes<br />
 <br />
 <b>PSRAM:</b> Disabled<br />
 <b>Partition Scheme:</b> Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)<br />
@@ -30,7 +30,7 @@ Below you will find a list of build which can be configured and should compile w
     </tr>
     <tr>
         <td>ML SynthTools</td>
-        <td>1.1.0</td>
+        <td>1.3.1</td>
         <td>https://github.com/marcel-licence/ML_SynthTools</td>
         <td>https://github.com/marcel-licence/ML_SynthTools.git</td>
         <td>False</td>
@@ -64,6 +64,27 @@ Below you will find a list of build which can be configured and should compile w
         <td>False</td>
     </tr>
     <tr>
+        <td>FS</td>
+        <td>1.0</td>
+        <td></td>
+        <td></td>
+        <td>True</td>
+    </tr>
+    <tr>
+        <td>LittleFS_esp32</td>
+        <td>1.0.6</td>
+        <td>https://github.com/lorol/LITTLEFS</td>
+        <td>https://github.com/lorol/LITTLEFS</td>
+        <td>False</td>
+    </tr>
+    <tr>
+        <td>SD_MMC</td>
+        <td>1.0</td>
+        <td></td>
+        <td></td>
+        <td>True</td>
+    </tr>
+    <tr>
         <td>Adafruit GFX Library</td>
         <td>1.11.5</td>
         <td>https://github.com/adafruit/Adafruit-GFX-Library</td>
@@ -89,8 +110,8 @@ Below you will find a list of build which can be configured and should compile w
 <b>Version:</b> 2.0.0<br />
 <b>Board:</b> ESP32 Dev Module<br />
 <br />
-<b>Program storage space:</b> 723377 bytes<br />
-<b>Dynamic memory:</b> 53148 bytes<br />
+<b>Program storage space:</b> 732353 bytes<br />
+<b>Dynamic memory:</b> 53228 bytes<br />
 <br />
 <b>PSRAM:</b> Disabled<br />
 <b>Partition Scheme:</b> Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)<br />
@@ -114,7 +135,7 @@ Below you will find a list of build which can be configured and should compile w
     </tr>
     <tr>
         <td>ML SynthTools</td>
-        <td>1.1.0</td>
+        <td>1.3.1</td>
         <td>https://github.com/marcel-licence/ML_SynthTools</td>
         <td>https://github.com/marcel-licence/ML_SynthTools.git</td>
         <td>False</td>
@@ -146,6 +167,27 @@ Below you will find a list of build which can be configured and should compile w
         <td>https://github.com/adafruit/Adafruit_NeoPixel</td>
         <td>https://github.com/adafruit/Adafruit_NeoPixel</td>
         <td>False</td>
+    </tr>
+    <tr>
+        <td>FS</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td></td>
+        <td>True</td>
+    </tr>
+    <tr>
+        <td>LittleFS</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td></td>
+        <td>True</td>
+    </tr>
+    <tr>
+        <td>SD_MMC</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td></td>
+        <td>True</td>
     </tr>
     <tr>
         <td>Adafruit GFX Library</td>
@@ -173,8 +215,8 @@ Below you will find a list of build which can be configured and should compile w
 <b>Version:</b> 2.0.7<br />
 <b>Board:</b> ESP32 Dev Module<br />
 <br />
-<b>Program storage space:</b> 788965 bytes<br />
-<b>Dynamic memory:</b> 57876 bytes<br />
+<b>Program storage space:</b> 799081 bytes<br />
+<b>Dynamic memory:</b> 57924 bytes<br />
 <br />
 <b>JTAG Adapter:</b> Disabled<br />
 <b>PSRAM:</b> Disabled<br />
@@ -200,7 +242,7 @@ Below you will find a list of build which can be configured and should compile w
     </tr>
     <tr>
         <td>ML SynthTools</td>
-        <td>1.1.0</td>
+        <td>1.3.1</td>
         <td>https://github.com/marcel-licence/ML_SynthTools</td>
         <td>https://github.com/marcel-licence/ML_SynthTools.git</td>
         <td>False</td>
@@ -232,6 +274,27 @@ Below you will find a list of build which can be configured and should compile w
         <td>https://github.com/adafruit/Adafruit_NeoPixel</td>
         <td>https://github.com/adafruit/Adafruit_NeoPixel</td>
         <td>False</td>
+    </tr>
+    <tr>
+        <td>FS</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td>https://github.com/espressif/arduino-esp32.git</td>
+        <td>True</td>
+    </tr>
+    <tr>
+        <td>LittleFS</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td>https://github.com/espressif/arduino-esp32.git</td>
+        <td>True</td>
+    </tr>
+    <tr>
+        <td>SD_MMC</td>
+        <td>2.0.0</td>
+        <td></td>
+        <td>https://github.com/espressif/arduino-esp32.git</td>
+        <td>True</td>
     </tr>
     <tr>
         <td>Adafruit GFX Library</td>
